@@ -266,3 +266,107 @@ button:disabled {
 .stack-val {
     font-weight: bold;
 }
+/* ============================================
+   Panel del Co-procesador FPU
+   ============================================ */
+.card.fpu-panel {
+    background: #1e1e2e;
+    color: #e0e0e0;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    font-family: 'Courier New', monospace;
+}
+
+.card.fpu-panel h2 {
+    color: #4ec9b0;
+    border-bottom: 2px solid #4ec9b0;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+    font-size: 1.1em;
+}
+
+.card.fpu-panel h3 {
+    color: #9cdcfe;
+    font-size: 0.9em;
+    margin: 12px 0 6px;
+}
+
+.fpu-status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.led {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #444;
+    box-shadow: 0 0 4px #000;
+    transition: all 0.2s;
+}
+
+.led.active {
+    background: #4ec9b0;
+    box-shadow: 0 0 12px #4ec9b0;
+}
+
+#fpu-stack-table {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.85em;
+}
+
+#fpu-stack-table .fpu-reg-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 8px;
+    border: 1px solid #333;
+    border-radius: 3px;
+    background: #23233a;
+}
+
+#fpu-stack-table .fpu-reg-row.st0 {
+    background: #2a3f5f;
+    font-weight: bold;
+    color: #4ec9b0;
+    border-color: #4ec9b0;
+}
+
+.fpu-flags-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    font-size: 0.8em;
+}
+.fpu-flags-grid .flag-box {
+    background: #2a2a3e;
+
+.fpu-flags-grid .flag-box.active {
+    background: #4a2a2a;
+    border-color: #f48771;
+}
+    font-weight: bold;
+}
+
+.fpu-instr {
+    color: #ce9178;
+    font-size: 0.9em;
+    font-family: 'Courier New', monospace;
+}    background: #2a2a3e;
+    padding: 6px 10px;
+    border-radius: 4px;
+
+.fpu-flags-grid .flag-box.active div {
+    color: #f48771;
+    padding: 4px 6px;
+    transition: all 0.15s;
+}
+    border-radius: 4px;
+    text-align: center;
+    border: 1px solid transparent;
+

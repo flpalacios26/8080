@@ -1,6 +1,7 @@
 class Intel8080 {
     constructor() {
         this.memory = new Uint8Array(65536);
+this.fpu = new FPU ();
         this.reset();
     }
 
@@ -27,6 +28,8 @@ class Intel8080 {
         if (this.memory) {
             this.memory.fill(0);
         }
+if  (this.fpu) this.fpu.reset();
+
     }
 
     getRP(rp) {
@@ -44,6 +47,9 @@ class Intel8080 {
         switch (rp) {
             case 'bc':
                 this.registers.b = (value >> 8) & 0xFF;
+
+
+
                 this.registers.c = value & 0xFF;
                 break;
             case 'de':
@@ -95,15 +101,50 @@ class Intel8080 {
         }
         return (count % 2 === 0);
     }
-
     readMemory(addr) {
-        return this.memory[addr & 0xFFFF];
+        addr &= 0xFFFF;
+
+        // Banco FPU: F000h - F003h
+        if (addr >= 0xF000 && addr <= 0xF003) {
+            if (!this.fpu) return 0;
+            switch (addr) {
+                case 0xF000: return this.fpu.dataPort & 0xFF;
+                case 0xF001: return this.fpu.commandPort & 0xFF;
+                case 0xF002: return this.fpu.resultPort & 0xFF;
+                case 0xF003: return this.fpu.readStatus();
+            }
+        }
+
+        return this.memory[addr];
     }
 
     writeMemory(addr, val) {
-        this.memory[addr & 0xFFFF] = val & 0xFF;
-    }
+        addr &= 0xFFFF;
+        val &= 0xFF;
 
+        // Banco FPU: F000h - F003h
+        if (addr >= 0xF000 && addr <= 0xF003) {
+            if (!this.fpu) return;
+            switch (addr) {
+                case 0xF000:
+                    this.fpu.dataPort = val;
+                    break;
+                case 0xF001:
+                    this.fpu.commandPort = val;
+                    this.fpu.execute(val);   // ¡dispara la instrucción FPU!
+                    break;
+                case 0xF002:
+                    this.fpu.resultPort = val;
+                    break;
+                case 0xF003:
+                    // status es solo lectura, ignorar
+                    break;
+            }
+            return;
+        }
+
+        this.memory[addr] = val;
+    }
     fetch() {
         const byte = this.readMemory(this.registers.pc);
         this.registers.pc = (this.registers.pc + 1) & 0xFFFF;

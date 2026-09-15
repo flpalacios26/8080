@@ -84,6 +84,33 @@ HLT"></textarea>
                     </div>
                 </div>
 
+                    <div class="card fpu-panel">
+                        <h2>Co-procesador FPU</h2>
+
+                        <div class="fpu-status-row">
+                            <span id="fpu-activity" class="led"></span>
+                            <span id="fpu-state">Idle</span>
+                        </div>
+
+                        <h3>Pila ST(0)–ST(7)</h3>
+                        <div id="fpu-stack-table"></div>
+
+                        <h3>Flags FPU</h3>
+                        <div class="fpu-flags-grid">
+                            <div class="flag-box" title="Condition Code 0"><span>C0</span><div id="fpu-flag-C0">0</div></div>
+                            <div class="flag-box" title="Condition Code 1"><span>C1</span><div id="fpu-flag-C1">0</div></div>
+                            <div class="flag-box" title="Condition Code 2"><span>C2</span><div id="fpu-flag-C2">0</div></div>
+                            <div class="flag-box" title="Condition Code 3"><span>C3</span><div id="fpu-flag-C3">0</div></div>
+                            <div class="flag-box" title="Invalid Operation (Operación Inválida)"><span>IE</span><div id="fpu-flag-IE">0</div></div>
+                            <div class="flag-box" title="Zero Divide (División por cero)"><span>ZE</span><div id="fpu-flag-ZE">0</div></div>
+                            <div class="flag-box" title="Overflow (Desbordamiento)"><span>OE</span><div id="fpu-flag-OE">0</div></div>
+                            <div class="flag-box" title="Underflow (Subdesbordamiento)"><span>UE</span><div id="fpu-flag-UE">0</div></div>
+                            <div class="flag-box" title="Precision (Precisión)"><span>PE</span><div id="fpu-flag-PE">0</div></div>
+                        </div>
+
+                        <h3>Última Instrucción</h3>
+                        <div id="fpu-last-instr" class="fpu-instr">—</div>
+                    </div>
                 <div class="card memory">
                     <h3>Memory View</h3>
                     <div class="mem-controls">
@@ -95,9 +122,10 @@ HLT"></textarea>
             </div>
         </section>
     </main>
-
+    <script src="fpu.js"></script>
     <script src="cpu.js"></script>
     <script src="assembler.js"></script>
+    <script src="fpu-ui.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

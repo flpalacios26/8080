@@ -37,6 +37,7 @@ class Assembler8080 {
             'POP': { bytes: 1 },
             'JNZ': { code: 0xC2, bytes: 3 },
             'JMP': { code: 0xC3, bytes: 3 },
+
             'CNZ': { code: 0xC4, bytes: 3 },
             'PUSH': { bytes: 1 },
             'ADI': { code: 0xC6, bytes: 2 },
@@ -82,7 +83,11 @@ class Assembler8080 {
         };
         this.regs = { 'B': 0, 'C': 1, 'D': 2, 'E': 3, 'H': 4, 'L': 5, 'M': 6, 'A': 7 };
         this.rps = { 'B': 0, 'C': 0, 'D': 1, 'E': 1, 'H': 2, 'L': 2, 'SP': 3, 'PSW': 3, 'BC': 0, 'DE': 1, 'HL': 2 };
-    }
+        // Mnemónicos del co-procesador FPU
+        this.fpuMnemonics = [
+            'FLD', 'FST', 'FADD', 'FSUB', 'FMUL', 'FDIV',
+            'FSQRT', 'FSIN', 'FCOS', 'FINT', 'FSTAT'
+        ];    }
 
     assemble(source) {
         const lines = source.split('\n');
@@ -116,6 +121,26 @@ class Assembler8080 {
                 currentPC += tokens.length - 1;
                 return { type: 'data', mnemonic, tokens, pc };
             }
+            // ¿Es un mnemónico FPU?
+            if (this.fpuMnemonics.includes(mnemonic)) {
+                const fpuPC = currentPC;
+                const sizes = {
+                    FLD: 11, FST: 11,
+                    FADD: 5, FSUB: 5, FMUL: 5, FDIV: 5,
+                    FSQRT: 5, FSIN: 5, FCOS: 5,
+                    FINT: 8, FSTAT: 3
+                };
+                const size = sizes[mnemonic] || 0;
+                currentPC += size;
+                return {
+                    type: 'instruction',
+                    mnemonic,
+                    tokens,
+                    pc: fpuPC,
+                    info: { code: 0, bytes: size },
+                    isFPU: true
+                };
+            }
 
             const info = this.opcodes[mnemonic];
             if (!info) throw new Error(`Unknown mnemonic: ${mnemonic}`);
@@ -123,8 +148,6 @@ class Assembler8080 {
             currentPC += info.bytes;
             return { type: 'instruction', mnemonic, tokens, pc, info };
         }).filter(l => l);
-
-        // Second pass: Generate code
         const binary = new Uint8Array(65536);
         let maxAddr = 0;
 
@@ -137,21 +160,33 @@ class Assembler8080 {
                 }
             } else {
                 const code = this.generateOpcode(line, labels);
-                binary[pc++] = code.byte1;
-                if (line.info.bytes > 1) binary[pc++] = code.byte2;
-                if (line.info.bytes > 2) binary[pc++] = code.byte3;
-            }
+
+                // ¿Es un Uint8Array? (instrucción FPU expandida)
+                if (code instanceof Uint8Array) {
+                    for (let i = 0; i < code.length; i++) {
+                        binary[pc++] = code[i];
+                    }
+                } else {
+                    // Instrucción normal (objeto con byte1/byte2/byte3)
+                    binary[pc++] = code.byte1;
+                    if (line.info.bytes > 1) binary[pc++] = code.byte2;
+                    if (line.info.bytes > 2) binary[pc++] = code.byte3;
+           }
+        }
             if (pc > maxAddr) maxAddr = pc;
         });
 
         return { binary, maxAddr };
     }
-
     generateOpcode(line, labels) {
         const mnemonic = line.mnemonic;
         const tokens = line.tokens;
         let byte1 = line.info.code;
         let byte2 = 0, byte3 = 0;
+        // Si es una instrucción FPU, expandirla a su secuencia de bytes
+        if (line.isFPU) {
+            return this.expandFPU(line.mnemonic, line.tokens, labels);
+        }
 
         const r1 = tokens[1] ? tokens[1].toUpperCase() : null;
         const r2 = tokens[2] ? tokens[2].toUpperCase() : null;
@@ -245,7 +280,48 @@ class Assembler8080 {
         }
         return parsed;
     }
-}
+    expandFPU(mnemonic, tokens, labels) {
+        const bytes = [];
+        const getAddr = (tok) => {
+            const v = this.parseValue(tok, labels);
+            return [v & 0xFF, (v >> 8) & 0xFF];
+        };
+
+        switch (mnemonic) {
+            case 'FLD': {
+                // LDA addr ; STA F000 ; MVI A,01 ; STA F001
+                const [lo, hi] = getAddr(tokens[1]);
+                bytes.push(0x3A, lo, hi);
+                bytes.push(0x32, 0x00, 0xF0);
+                bytes.push(0x3E, 0x01);
+                bytes.push(0x32, 0x01, 0xF0);
+                break;
+            }
+            case 'FST': {
+                // MVI A,02 ; STA F001 ; LDA F002 ; STA addr
+                const [lo, hi] = getAddr(tokens[1]);
+                bytes.push(0x3E, 0x02);
+                bytes.push(0x32, 0x01, 0xF0);
+                bytes.push(0x3A, 0x02, 0xF0);
+                bytes.push(0x32, lo, hi);
+                break;
+            }
+            case 'FADD': bytes.push(0x3E, 0x03, 0x32, 0x01, 0xF0); break;
+            case 'FSUB': bytes.push(0x3E, 0x04, 0x32, 0x01, 0xF0); break;
+            case 'FMUL': bytes.push(0x3E, 0x05, 0x32, 0x01, 0xF0); break;
+            case 'FDIV': bytes.push(0x3E, 0x06, 0x32, 0x01, 0xF0); break;
+
+            case 'FSQRT': bytes.push(0x3E, 0x07, 0x32, 0x01, 0xF0); break;
+            case 'FSIN': bytes.push(0x3E, 0x08, 0x32, 0x01, 0xF0); break;
+            case 'FCOS': bytes.push(0x3E, 0x09, 0x32, 0x01, 0xF0); break;
+            case 'FINT': bytes.push(0x3E, 0x0A, 0x32, 0x01, 0xF0, 0x3A, 0x02, 0xF0); break;
+            case 'FSTAT': bytes.push(0x3A, 0x03, 0xF0); break;
+            default:
+                throw new Error(`FPU mnemonic not implemented: ${mnemonic}`);
+        }
+        return new Uint8Array(bytes);
+    }
+}                                      // ← cierra la clase Assembler8080
 
 if (typeof module !== 'undefined') {
     module.exports = Assembler8080;

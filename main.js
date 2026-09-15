@@ -29,7 +29,7 @@ function updateUI() {
 
     renderMemory();
     renderStack();
-}
+}     if (typeof updateFPUPanel === 'function') updateFPUPanel();
 
 function renderStack() {
     const table = document.getElementById('stack-table');
@@ -130,7 +130,7 @@ document.getElementById('btn-step').addEventListener('click', () => {
     cpu.step();
     updateUI();
 });
-
+    if (typeof updateFPUPanel === 'function') updateFPUPanel();
 document.getElementById('btn-run').addEventListener('click', () => {
     if (runInterval) return;
     runInterval = setInterval(() => {
